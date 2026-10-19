@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Voice Tutor — Mic Test</title>
+  <style>
+    body { font-family: monospace; max-width: 700px; margin: 40px auto; padding: 0 20px; background: #111; color: #ddd; }
+    h2 { color: #fff; margin-bottom: 4px; }
+    .subtitle { color: #888; font-size: 13px; margin-bottom: 24px; }
+    .controls { display: flex; gap: 10px; margin-bottom: 20px; }
+    button { padding: 8px 18px; font-size: 14px; font-family: monospace; border: none; border-radius: 4px; cursor: pointer; }
+    #btn-start  { background: #2a7; color: #fff; }
+    #btn-stop   { background: #a33; color: #fff; }
+    #btn-start:disabled, #btn-stop:disabled { opacity: 0.4; cursor: default; }
+    .status { font-size: 12px; color: #888; margin-bottom: 16px; }
+    .status span { color: #fff; }
+    #log { height: 420px; overflow-y: auto; border: 1px solid #333; border-radius: 4px; padding: 10px; font-size: 12px; line-height: 1.7; }
+    .msg-begin       { color: #5af; }
+    .msg-turn        { color: #ccc; }
+    .msg-turn-final  { color: #fff; font-weight: bold; }
+    .msg-termination { color: #fa5; }
+    .msg-tutor       { color: #8f8; }
+    .msg-error       { color: #f55; }
+    .msg-system      { color: #666; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h2>Voice Tutor — Live Mic</h2>
+  <p class="subtitle">PCM16LE @ 16 kHz → FastAPI → AssemblyAI v3</p>
+
+  <div class="controls">
+    <select id="lang-select" style="font-family:monospace;font-size:14px;padding:8px 10px;border-radius:4px;border:1px solid #444;background:#222;color:#ddd;">
+      <option value="en">English</option>
+      <option value="hi">Hindi / Hinglish</option>
+    </select>
+    <button id="btn-start">Start session</button>
+    <button id="btn-stop" disabled>Stop session</button>
+  </div>
+
+  <div class="status">Status: <span id="status-text">idle</span></div>
+  <div id="log"></div>
+
+  <script>
+    const WS_BASE = "ws://localhost:8000/ws/session";
+    const SCRIPT_PROCESSOR_FRAMES = 4096; // ~256 ms at 16 kHz
+
+    let ws = null;
+    let sessionLang = "en";
+    let audioCtx = null;
+    let processor = null;
+    let micStream = null;
+
+    const btnStart  = document.getElementById("btn-start");
+    const btnStop   = document.getElementById("btn-stop");
+    const langSelect = document.getElementById("lang-select");
+    const statusEl  = document.getElementById("status-text");
+    const logEl     = document.getElementById("log");
+
+    function log(text, cls) {
+      const div = document.createElement("div");
+      div.className = cls || "";
+      div.textContent = text;
+      logEl.appendChild(div);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setStatus(s) { statusEl.textContent = s; }
+
+    async function startSession() {
+      sessionLang = langSelect.value;
+      langSelect.disabled = true;
+      btnStart.disabled = true;
+      setStatus("requesting mic…");
+
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      } catch (e) {
+        log("Mic access denied: " + e.message, "msg-error");
+        setStatus("mic denied");
+        btnStart.disabled = false;
+        return;
+      }
+
+      try {
+        audioCtx = new AudioContext({ sampleRate: 16000 });
+      } catch (e) {
+        audioCtx = new AudioContext();
+        log(`Warning: browser rejected sampleRate=16000, using ${audioCtx.sampleRate} Hz instead.`, "msg-system");
+      }
+
+      const source = audioCtx.createMediaStreamSource(micStream);
+      // ScriptProcessorNode: deprecated but works fine from file:// without CORS issues.
+      processor = audioCtx.createScriptProcessor(SCRIPT_PROCESSOR_FRAMES, 1, 1);
+
+      ws = new WebSocket(`${WS_BASE}?lang=${sessionLang}`);
+      ws.binaryType = "arraybuffer";
+
+      ws.onopen = () => {
+        setStatus("connected — speak now");
+        log("WebSocket open.", "msg-system");
+        processor.onaudioprocess = (e) => {
+          if (ws && ws.readyState !== WebSocket.OPEN) return;
+          const float32 = e.inputBuffer.getChannelData(0);
+          const int16 = new Int16Array(float32.length);
+          for (let i = 0; i < float32.length; i++) {
+            int16[i] = Math.max(-32768, Math.min(32767, Math.round(float32[i] * 32767)));
+          }
+          speechSynthesis.cancel(); // barge-in: stop tutor when mic is hot
+          ws.send(int16.buffer);
+        };
+        source.connect(processor);
+        processor.connect(audioCtx.destination);
+        btnStop.disabled = false;
+      };
+
+      ws.onmessage = (e) => {
+        let msg;
+        try { msg = JSON.parse(e.data); } catch { log("Non-JSON: " + e.data, "msg-system"); return; }
+
+        switch (msg.type) {
+          case "Begin":
+            log(`[Begin] session_id=${msg.id || "?"}`, "msg-begin");
+            break;
+          case "Turn":
+            if (msg.end_of_turn) {
+              log(`[Turn final] "${msg.transcript}"`, "msg-turn-final");
+            } else {
+              // Overwrite last partial line for readability
+              const partials = logEl.querySelectorAll(".msg-turn-partial");
+              partials.forEach(p => p.remove());
+              const div = document.createElement("div");
+              div.className = "msg-turn msg-turn-partial";
+              div.textContent = `[Turn …] "${msg.transcript}"`;
+              logEl.appendChild(div);
+              logEl.scrollTop = logEl.scrollHeight;
+            }
+            break;
+          case "Termination":
+            log("[Termination] session ended.", "msg-termination");
+            setStatus("terminated");
+            cleanup(false);
+            break;
+          case "tutor_turn":
+            log(`[Tutor] "${msg.text}"`, "msg-tutor");
+            const utt = new SpeechSynthesisUtterance(msg.text);
+            utt.lang = sessionLang === "hi" ? "hi-IN" : "en-US";
+            speechSynthesis.speak(utt);
+            break;
+          case "error":
+            log(`[Error] ${msg.detail}`, "msg-error");
+            break;
+          default:
+            log(`[${msg.type}] ${JSON.stringify(msg)}`, "msg-system");
+        }
+      };
+
+      ws.onerror = (e) => { log("WebSocket error.", "msg-error"); };
+      ws.onclose = (e) => {
+        log(`WebSocket closed (code=${e.code}).`, "msg-system");
+        setStatus("disconnected");
+        cleanup(false);
+      };
+    }
+
+    function stopSession() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "terminate" }));
+        setStatus("terminating…");
+      }
+      btnStop.disabled = true;
+    }
+
+    function cleanup(resetStart = true) {
+      speechSynthesis.cancel();
+      if (processor)  { processor.disconnect(); processor = null; }
+      if (audioCtx)   { audioCtx.close(); audioCtx = null; }
+      if (micStream)  { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+      if (ws && ws.readyState < 2) { ws.close(); }
+      ws = null;
+      langSelect.disabled = false;
+      btnStop.disabled = true;
+      if (resetStart) { btnStart.disabled = false; setStatus("idle"); }
+      else            { btnStart.disabled = false; }
+    }
+
+    btnStart.addEventListener("click", startSession);
+    btnStop.addEventListener("click", stopSession);
+  </script>
+</body>
+</html>

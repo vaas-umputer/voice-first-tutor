@@ -1,0 +1,90 @@
+[
+  {
+    "id": "prob_001",
+    "text": "A car travels 60 km in 2 hours. What is its average speed?",
+    "skill_code": "math.ratio.speed_distance_time",
+    "difficulty": "easy",
+    "worked_solution": "speed = distance / time = 60 / 2 = 30 km/h",
+    "concepts": ["division", "ratio", "units", "speed-distance-time"]
+  },
+  {
+    "id": "prob_002",
+    "text": "A cyclist rides 20 km in 4 hours. What is the cyclist's speed?",
+    "skill_code": "math.ratio.speed_distance_time",
+    "difficulty": "easy",
+    "worked_solution": "speed = distance / time = 20 / 4 = 5 km/h",
+    "concepts": ["division", "ratio", "units", "speed-distance-time"]
+  },
+  {
+    "id": "prob_003",
+    "text": "A walker covers 9 km in 3 hours. How fast is the walker moving?",
+    "skill_code": "math.ratio.speed_distance_time",
+    "difficulty": "easy",
+    "worked_solution": "speed = distance / time = 9 / 3 = 3 km/h",
+    "concepts": ["division", "ratio", "units", "speed-distance-time"]
+  },
+  {
+    "id": "prob_004",
+    "text": "A bus travels 150 km in 3 hours. What is its average speed?",
+    "skill_code": "math.ratio.speed_distance_time",
+    "difficulty": "easy",
+    "worked_solution": "speed = distance / time = 150 / 3 = 50 km/h",
+    "concepts": ["division", "ratio", "units", "speed-distance-time"]
+  },
+  {
+    "id": "prob_005",
+    "text": "A train travels 240 km in 3 hours. What is its average speed?",
+    "skill_code": "math.ratio.speed_distance_time",
+    "difficulty": "medium",
+    "worked_solution": "speed = distance / time = 240 / 3 = 80 km/h",
+    "concepts": ["division", "ratio", "units", "speed-distance-time"]
+  },
+  {
+    "id": "prob_006",
+    "text": "A runner completes 42 km in 3.5 hours. What is the runner's average speed?",
+    "skill_code": "math.ratio.speed_distance_time",
+    "difficulty": "medium",
+    "worked_solution": "speed = distance / time = 42 / 3.5 = 12 km/h",
+    "concepts": ["division", "ratio", "units", "speed-distance-time"]
+  },
+  {
+    "id": "prob_007",
+    "text": "A car travels at 90 km/h for 2.5 hours. How far does it travel?",
+    "skill_code": "math.ratio.speed_distance_time",
+    "difficulty": "medium",
+    "worked_solution": "distance = speed x time = 90 x 2.5 = 225 km",
+    "concepts": ["multiplication", "ratio", "units", "speed-distance-time"]
+  },
+  {
+    "id": "prob_008",
+    "text": "A plane flies 1800 km in 4 hours. What is its average speed?",
+    "skill_code": "math.ratio.speed_distance_time",
+    "difficulty": "medium",
+    "worked_solution": "speed = distance / time = 1800 / 4 = 450 km/h",
+    "concepts": ["division", "ratio", "units", "speed-distance-time"]
+  },
+  {
+    "id": "prob_009",
+    "text": "A train leaves at 60 km/h. How long does it take to travel 330 km?",
+    "skill_code": "math.ratio.speed_distance_time",
+    "difficulty": "hard",
+    "worked_solution": "time = distance / speed = 330 / 60 = 5.5 hours",
+    "concepts": ["division", "ratio", "units", "speed-distance-time"]
+  },
+  {
+    "id": "prob_010",
+    "text": "Two cyclists start 100 km apart and ride toward each other at 20 km/h and 30 km/h. How long until they meet?",
+    "skill_code": "math.ratio.speed_distance_time",
+    "difficulty": "hard",
+    "worked_solution": "combined speed = 20 + 30 = 50 km/h; time = distance / speed = 100 / 50 = 2 hours",
+    "concepts": ["relative speed", "ratio", "units", "speed-distance-time"]
+  },
+  {
+    "id": "prob_011",
+    "text": "A car covers the first 60 km at 30 km/h and the next 60 km at 60 km/h. What is its average speed for the whole trip?",
+    "skill_code": "math.ratio.speed_distance_time",
+    "difficulty": "hard",
+    "worked_solution": "time1 = 60/30 = 2 h; time2 = 60/60 = 1 h; total distance = 120 km; total time = 3 h; average speed = 120 / 3 = 40 km/h",
+    "concepts": ["average speed", "ratio", "units", "speed-distance-time"]
+  }
+]
